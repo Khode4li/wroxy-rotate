@@ -85,6 +85,7 @@ for i in $(seq 1 $proxy_count); do
   fi
 
   proxy_name="warpVPN_proxy_$i"
+  sleep 2
   docker run -d --name $proxy_name --network $network_name -e COUNTRY=$selected_country warpvpn
   proxy_names+=($proxy_name)
 
