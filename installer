@@ -1,0 +1,131 @@
+#!/bin/bash
+
+mkdir haproxy
+chmod 777 haproxy
+
+# Step 1: Check if a Docker image named warpVPN exists
+if ! docker images | grep -q "warpvpn"; then
+  echo "warpVPN image not found, building the image..."
+  docker build -t warpvpn $(pwd)/warpDocker/
+else
+  echo "warpVPN image already exists."
+fi
+
+# Step 2: Ask the user how many proxies they want
+read -p "How many proxies do you want? " proxy_count
+
+# Step 3: Ask the user to enter the country (default is random)
+echo "allowed country (AT BE BG BR CA CH CZ DE DK EE ES FI FR GB HR HU IE IN IT JP LV NL NO PL PT RO RS SE SG SK UA US)"
+read -p "Enter the country (default is random): " country
+country=${country:-random}
+
+# List of allowed countries
+allowed_countries=(AT BE BG BR CA CH CZ DE DK EE ES FI FR GB HR HU IE IN IT JP LV NL NO PL PT RO RS SE SG SK UA US)
+
+# Validate country input
+if [[ "$country" != "random" && ! " ${allowed_countries[@]} " =~ " ${country} " ]]; then
+  echo "Invalid country. Please enter one of the following: ${allowed_countries[*]}"
+  exit 1
+fi
+
+# Get a custom port for HAProxy (default is 7777)
+read -p "Enter a custom port for HAProxy (default is 7777): " haproxy_port
+haproxy_port=${haproxy_port:-7777}
+
+
+network_name="warpVPN_network"
+docker network create $network_name
+
+# Create HAProxy config
+haproxy_config=$(cat <<EOF
+global
+        log /dev/log    local0
+        log /dev/log    local1 notice
+        stats socket /run/haproxy/admin.sock mode 660 level admin expose-fd listeners
+        stats timeout 30s
+        user haproxy
+        group haproxy
+        daemon
+
+        # Default SSL material locations
+        ca-base /etc/ssl/certs
+        crt-base /etc/ssl/private
+
+        # See: https://ssl-config.mozilla.org/#server=haproxy&server-version=2.0.3&config=intermediate
+        ssl-default-bind-ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384
+        ssl-default-bind-ciphersuites TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
+        ssl-default-bind-options ssl-min-ver TLSv1.2 no-tls-tickets
+
+defaults
+        log     global
+        mode    tcp
+        option  tcplog
+        timeout connect 5000
+        timeout client  50000
+        timeout server  50000
+
+frontend http_front
+    bind *:$haproxy_port
+    mode tcp
+    default_backend socks_backend
+
+backend socks_backend
+    mode tcp
+    balance roundrobin
+EOF
+)
+
+# Create Docker containers for proxies
+proxy_names=()
+for i in $(seq 1 $proxy_count); do
+  if [ "$country" == "random" ]; then
+    selected_country=${allowed_countries[$(( (i-1) % ${#allowed_countries[@]} ))]}
+  else
+    selected_country=$country
+  fi
+
+  proxy_name="warpVPN_proxy_$i"
+  docker run -d --name $proxy_name --network $network_name -e COUNTRY=$selected_country warpvpn
+  proxy_names+=($proxy_name)
+
+  haproxy_config+="\n    server ${proxy_name} ${proxy_name}:8086 check"
+done
+
+haproxy_config+="\n"
+
+# Save HAProxy config to file
+echo -e "$haproxy_config" > haproxy.cfg
+
+# Create HAProxy container
+docker run -d --network $network_name --name haproxy -p $haproxy_port:$haproxy_port -v $(pwd)/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro -v $(pwd)/haproxy:/run/haproxy haproxy
+
+# Save docker names into a config file
+echo "${proxy_names[@]}" > warpVPN_proxies.config
+
+# Create stop and remove script
+cat <<EOF > stop_and_remove_proxies.sh
+#!/bin/bash
+
+# Read proxy names from config file
+proxy_names=(\$(cat warpVPN_proxies.config))
+
+# Stop and remove all proxy containers
+for proxy_name in "\${proxy_names[@]}"; do
+  docker kill \$proxy_name
+  docker rm \$proxy_name
+done
+
+# Stop and remove HAProxy container
+docker stop haproxy
+docker rm haproxy
+docker network rm $network_name
+rm haproxy.cfg
+rm warpVPN_proxies.config
+rm stop_and_remove_proxies.sh
+rm -rf haproxy
+EOF
+
+# Make stop and remove script executable
+chmod +x stop_and_remove_proxies.sh
+
+echo "Setup complete. Use stop_and_remove_proxies.sh to stop and remove all proxy containers and the HAProxy container."
