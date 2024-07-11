@@ -1,4 +1,4 @@
-<h4 align="center"> do your fuzzing without getting banned :D <h4 style="color: red">#K2K</h4> </h4>
+<h4 align="center"> do your fuzzing without getting banned :D <span style="color: red;">#K2K</span> </h4>
 <p align="center">
   <a href="#About-Project">About Project</a> •
   <a href="#Installation">Installation</a> •
