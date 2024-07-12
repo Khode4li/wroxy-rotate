@@ -1,5 +1,26 @@
 #!/bin/bash
 
+check_and_restart_containers() {
+    while true; do
+        # Find all Exited warpvpn containers
+        exited_containers=$(docker ps -a --filter "ancestor=warpvpn" | grep "Exited" | awk '{print $NF}')
+        
+        # If no Exited containers are found, exit the loop
+        if [ -z "$exited_containers" ]; then
+            echo "No more Exited warpvpn containers found."
+            break
+        fi
+        
+        # Restart each Exited container
+        echo "Restarting Exited warpvpn containers..."
+        echo "$exited_containers" | while read cname; do
+            docker start "$cname"
+            sleep 60
+        done
+    done
+}
+
+
 mkdir haproxy
 chmod 777 haproxy
 
@@ -131,5 +152,8 @@ EOF
 
 # Make stop and remove script executable
 chmod +x kill_wroxy
+
+
+check_and_restart_containers
 
 echo "Setup complete. Use 'kill_wroxy' to stop and remove all proxy containers and the HAProxy container."
