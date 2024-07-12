@@ -122,7 +122,7 @@ haproxy_config+="\n"
 echo -e "$haproxy_config" > haproxy.cfg
 
 # Create HAProxy container
-docker run -d --network $network_name --name haproxy -p $haproxy_port:$haproxy_port -v $(pwd)/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro -v $(pwd)/haproxy:/run/haproxy haproxy
+docker run --cpu-period="100000" --cpu-quota="10000" --memory="12m" --memory-swap="256m" -d --network $network_name --name haproxy -p $haproxy_port:$haproxy_port -v $(pwd)/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro -v $(pwd)/haproxy:/run/haproxy haproxy
 
 # Save docker names into a config file
 echo "${proxy_names[@]}" > warpVPN_proxies.config
