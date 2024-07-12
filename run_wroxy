@@ -112,13 +112,13 @@ proxy_names=(\$(cat warpVPN_proxies.config))
 
 # Stop and remove all proxy containers
 for proxy_name in "\${proxy_names[@]}"; do
-  docker kill \$proxy_name
-  docker rm \$proxy_name
+  echo container \$(docker kill \$proxy_name) successfully stopped!
+  echo container \$(docker rm \$proxy_name) successfully removed!
 done
 
 # Stop and remove HAProxy container
-docker stop haproxy
-docker rm haproxy
+echo container \$(docker stop haproxy) successfully stopped!
+echo container \$(docker rm haproxy) successfully removed!
 docker network rm $network_name
 rm haproxy.cfg
 rm warpVPN_proxies.config
