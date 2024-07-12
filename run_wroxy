@@ -104,7 +104,7 @@ docker run -d --network $network_name --name haproxy -p $haproxy_port:$haproxy_p
 echo "${proxy_names[@]}" > warpVPN_proxies.config
 
 # Create stop and remove script
-cat <<EOF > stop_and_remove_proxies.sh
+cat <<EOF > kill_wroxy
 #!/bin/bash
 
 # Read proxy names from config file
@@ -122,11 +122,11 @@ docker rm haproxy
 docker network rm $network_name
 rm haproxy.cfg
 rm warpVPN_proxies.config
-rm stop_and_remove_proxies.sh
+rm kill_wroxy
 rm -rf haproxy
 EOF
 
 # Make stop and remove script executable
-chmod +x stop_and_remove_proxies.sh
+chmod +x kill_wroxy
 
-echo "Setup complete. Use stop_and_remove_proxies.sh to stop and remove all proxy containers and the HAProxy container."
+echo "Setup complete. Use 'kill_wroxy' to stop and remove all proxy containers and the HAProxy container."
