@@ -14,12 +14,14 @@ This project automates the setup of multiple VPN proxy servers using Docker and 
 ```bash
 git clone https://github.com/Khode4li/wroxy-rotate && cd wroxy-rotate
 ```
-2. Run the `Installer`
+2. Run the `run_wroxy`
 ```bash
-chmod +x installer
-./installer
+chmod +x run_wroxy
+./run_wroxy
 ```
 3. At first, it will build the Docker image if it does not exist. Then it will ask you for the number of proxies and the country. After that, it will ask you to enter the HAProxy port (to which you will connect). Finally, it builds the containers and stop file.
+
+**please note that user must be `sudoer` to be able to run the wroxy**
 
 ## Usage
 After running the setup script, you will have multiple proxy containers and a HAProxy container running. The HAProxy container will balance the load across the proxies.
@@ -27,5 +29,5 @@ After running the setup script, you will have multiple proxy containers and a HA
 ### Stopping and Removing Containers
 To stop and remove all proxy containers along with the HAProxy container, use the provided script:
 ```bash
-./stop_and_remove_proxies.sh
+./kill_wroxy
 ```
