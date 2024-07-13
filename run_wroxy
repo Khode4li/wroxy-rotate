@@ -5,17 +5,17 @@ check_and_restart_containers() {
         # Find all Exited warpvpn containers
         exited_containers=$(docker ps -a --filter "ancestor=warpvpn" | grep "Exited" | awk '{print $NF}')
         
-        # If no Exited containers are found, exit the loop
+        # If no Exist containers are found, exit the loop
         if [ -z "$exited_containers" ]; then
-            echo "No more Exited warpvpn containers found."
+            echo "No more Exist warpvpn containers found."
             break
         fi
         
-        # Restart each Exited container
-        echo "Restarting Exited warpvpn containers..."
+        # Restart each Exist container
+        echo "Restarting Exist warpvpn containers..."
         echo "$exited_containers" | while read cname; do
             docker start "$cname"
-            sleep 60
+            sleep 30
         done
     done
 }
@@ -109,8 +109,8 @@ for i in $(seq 1 $proxy_count); do
   fi
 
   proxy_name="warpVPN_proxy_$i"
-  sleep 60
-  docker run -d --name $proxy_name --network $network_name -e COUNTRY=$selected_country warpvpn
+  sleep 45
+  docker run --cpu-period="100000" --cpu-quota="10000" --memory="12m" --memory-swap="256m"  -d --name $proxy_name --network $network_name -e COUNTRY=$selected_country warpvpn
   proxy_names+=($proxy_name)
 
   haproxy_config+="\n    server ${proxy_name} ${proxy_name}:8086 check"
