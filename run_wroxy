@@ -110,7 +110,7 @@ for i in $(seq 1 $proxy_count); do
 
   proxy_name="warpVPN_proxy_$i"
   sleep 45
-  docker run --cpu-period="100000" --cpu-quota="10000" --memory="12m" --memory-swap="256m"  -d --name $proxy_name --network $network_name -e COUNTRY=$selected_country warpvpn
+  docker run -d --name $proxy_name --network $network_name -e COUNTRY=$selected_country warpvpn
   proxy_names+=($proxy_name)
 
   haproxy_config+="\n    server ${proxy_name} ${proxy_name}:8086 check"
