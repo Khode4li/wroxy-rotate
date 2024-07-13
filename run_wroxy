@@ -153,7 +153,7 @@ EOF
 # Make stop and remove script executable
 chmod +x kill_wroxy
 
-
+sleep 10
 check_and_restart_containers
 
 echo "Setup complete. Use 'kill_wroxy' to stop and remove all proxy containers and the HAProxy container."
